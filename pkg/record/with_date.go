@@ -35,6 +35,7 @@ func NewWithDateFromXMLData(xmlData *xml.Data) (*WithDate, error) {
 	for _, rate := range cube.Rates {
 		record[rate.Currency] = rate.Rate
 	}
+	record["EUR"] = 1 // add EUR rate for convenience
 
 	return &WithDate{
 		Date:   date,
