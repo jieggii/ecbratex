@@ -54,16 +54,16 @@ func TestFetchLatest(t *testing.T) {
 	defer server.Close() // todo: t.Cleanup
 
 	t.Run("working provider", func(t *testing.T) {
-		var provider = provider.NewHTTPProvider(server.URLLatest, server.URLTimeSeries, server.URLTimeSeriesLast90Days)
+		var testProvider = provider.NewHTTPProvider(server.URLLatest, server.URLTimeSeries, server.URLTimeSeriesLast90Days)
 
 		oldProvider := Provider
-		SetProvider(provider)
-		defer SetProvider(oldProvider)
+		SetProvider(testProvider)
+		defer SetProvider(oldProvider) // todo: t.Cleanup
 
-		data, err := FetchLatest()
+		recWithDate, err := FetchLatest()
 		if assert.NoError(t, err) {
-			assert.Equal(t, record.NewDate(2024, 2, 27), data.Date)
-			assert.Len(t, data.Record, 30)
+			assert.Equal(t, record.NewDate(2024, 2, 27), recWithDate.Date)
+			assert.Len(t, recWithDate.Record, 31)
 		}
 	})
 
