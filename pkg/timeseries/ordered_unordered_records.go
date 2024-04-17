@@ -5,15 +5,10 @@ import (
 	"github.com/jieggii/ecbratex/pkg/xml"
 )
 
-// OrderedUnorderedRecords (yes) is an implementation of the Records interface that combines
-// the benefits of UnorderedRecords with the ability to store the order of rate records.
-// It uses an underlying UnorderedRecords to store rates and perform calculations, while also
-// keeping track of the order of all rate records for easy accessibility.
-//
-// Use OrderedUnorderedRecords only if memory constraints are not a concern, and you need to
-// know the order of rate records. Otherwise, consider using UnorderedRecords or OrderedRecords.
+// OrderedUnorderedRecords is an implementation of the Records interface.
+// It combines benefits of UnorderedRecords and OrderedRecords, but takes more memory.
 type OrderedUnorderedRecords struct {
-	// Dates of all rate records in chronological order.
+	// Dates of all rate records in anti-chronological order.
 	Dates []record.Date
 
 	// UnorderedRecords is the underlying data structure to store rate records.
@@ -45,6 +40,8 @@ func NewOrderedUnorderedRecordsFromXML(xmlData *xml.Data) (*OrderedUnorderedReco
 	}, nil
 }
 
+// Slice returns the underlying slice containing all records in anti-chronological order.
+// Operates on O(1) time complexity.
 func (r OrderedUnorderedRecords) Slice() []record.WithDate {
 	records := make([]record.WithDate, 0)
 	for _, date := range r.Dates {

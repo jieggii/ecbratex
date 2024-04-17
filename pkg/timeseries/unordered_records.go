@@ -5,43 +5,65 @@ import (
 	"github.com/jieggii/ecbratex/pkg/date"
 	"github.com/jieggii/ecbratex/pkg/record"
 	"github.com/jieggii/ecbratex/pkg/xml"
+	"sort"
 )
 
-// UnorderedRecords is Records implementation, it stores rates records as
-// a map indexing each record by a date.
-// It provides O(1) access to rates for any given date.
+// UnorderedRecords is an implementation of the Records interface.
+// It stores records as a map indexing each record by a date so each record is accessible for O(1).
 type UnorderedRecords map[record.Date]record.Record
 
 // NewUnorderedRecordsFromXML creates a new UnorderedRecords from [xml.Data].
 func NewUnorderedRecordsFromXML(xmlData *xml.Data) (UnorderedRecords, error) {
-	rates := make(UnorderedRecords)
+	records := make(UnorderedRecords)
 	for _, cube := range xmlData.Cubes {
 		recDate, err := record.DateFromString(cube.Date)
 		if err != nil {
 			return nil, err
 		}
 
-		rates[recDate] = record.New()
+		records[recDate] = record.New()
 		for _, rate := range cube.Rates {
-			rates[recDate][rate.Currency] = rate.Rate
+			records[recDate][rate.Currency] = rate.Rate
 		}
-		rates[recDate]["EUR"] = 1 // add EUR rate for convenience
+		records[recDate]["EUR"] = 1 // add EUR rate for convenience
 	}
 
-	return rates, nil
+	return records, nil
 }
 
+// Slice returns the underlying slice containing all records in anti-chronological order.
+// Operates on O(n log n) time complexity.
 func (r UnorderedRecords) Slice() []record.WithDate {
-	// todo: implement
-	panic("implement me")
+	recordsCount := len(r)
+
+	// create and fill dates slice:
+	dates := make([]record.Date, 0, recordsCount)
+	for d := range r {
+		dates = append(dates, d)
+	}
+
+	// sort dates slice:
+	sort.Slice(dates, func(i, j int) bool {
+		return dates[i].After(dates[j])
+	})
+
+	// create and fill records:
+	records := make([]record.WithDate, 0, recordsCount)
+	for _, d := range dates {
+		records = append(records, record.NewWithDate(r[d], d))
+	}
+
+	return records
 }
 
-// Map returns map representation of records.
+// Map creates and returns map of all records indexed by date.
+// Operates on O(1) time complexity.
 func (r UnorderedRecords) Map() map[record.Date]record.Record {
 	return r
 }
 
-// Rates retrieves string rates for a given date.
+// Rates returns rates on the given date.
+// Operates on O(1) time complexity.
 func (r UnorderedRecords) Rates(date date.Date) (record.Record, bool) {
 	recDate := record.DateFromDate(date)
 	rates, found := r[recDate]
@@ -51,7 +73,8 @@ func (r UnorderedRecords) Rates(date date.Date) (record.Record, bool) {
 	return rates, true
 }
 
-// Rate retrieves the rate of a given string for a given date.
+// Rate returns rate of the given currency on the given date.
+// Operates on O(1) time complexity.
 func (r UnorderedRecords) Rate(date date.Date, currency string) (float32, bool) {
 	rates, found := r.Rates(date)
 	if !found {
@@ -65,7 +88,8 @@ func (r UnorderedRecords) Rate(date date.Date, currency string) (float32, bool) 
 	return rate, true
 }
 
-// ApproximateRates gets approximate rates on a given date.
+// ApproximateRates approximates and returns approximated rates on the given date.
+// Operates on O(rangeLim) time complexity.
 func (r UnorderedRecords) ApproximateRates(date date.Date, rangeLim int) (record.Record, bool) {
 	recDate := record.DateFromDate(date)
 
@@ -111,6 +135,8 @@ func (r UnorderedRecords) ApproximateRates(date date.Date, rangeLim int) (record
 	return ratesRecord, true
 }
 
+// ApproximateRate approximates and returns approximated rate of the given currency on the given date.
+// Operates on O(rangeLim) time complexity.
 func (r UnorderedRecords) ApproximateRate(date date.Date, currency string, rangeLim int) (float32, bool) {
 	recDate := record.DateFromDate(date)
 	earlierRec, earlierRecFound := r.nearestEarlierRecord(recDate, rangeLim)
@@ -146,6 +172,8 @@ func (r UnorderedRecords) ApproximateRate(date date.Date, currency string, range
 	return (earlierRate + laterRate) / 2, true
 }
 
+// Convert converts amount from one currency to another on the given date.
+// Operates on O(1) time complexity.
 func (r UnorderedRecords) Convert(date date.Date, amount float32, from string, to string) (float32, error) {
 	rec, found := r.Rates(date)
 	if !found {
@@ -159,6 +187,9 @@ func (r UnorderedRecords) Convert(date date.Date, amount float32, from string, t
 	return result, nil
 }
 
+// ConvertApproximate approximates rates on the given date
+// and uses them to convert amount from one currency to another on the given date.
+// Operates on O(n) time complexity.
 func (r UnorderedRecords) ConvertApproximate(date date.Date, amount float32, from string, to string, rangeLim int) (float32, error) {
 	rates, found := r.ApproximateRates(date, rangeLim)
 	if !found {
@@ -174,6 +205,7 @@ func (r UnorderedRecords) ConvertApproximate(date date.Date, amount float32, fro
 }
 
 // nearestEarlierRecord finds the closest earlier rate record to the given date within the specified range.
+// Operates on O(rangeLim) time complexity.
 func (r UnorderedRecords) nearestEarlierRecord(recDate record.Date, rangeLim int) (record.Record, bool) {
 	for range rangeLim {
 		recDate = recDate.AddDays(-1)
@@ -187,6 +219,7 @@ func (r UnorderedRecords) nearestEarlierRecord(recDate record.Date, rangeLim int
 }
 
 // nearestLaterRecord finds the closest later rate record to the given date within the specified range.
+// Operates on O(rangeLim) time complexity.
 func (r UnorderedRecords) nearestLaterRecord(recDate record.Date, rangeLim int) (record.Record, bool) {
 	for range rangeLim {
 		recDate = recDate.AddDays(1)

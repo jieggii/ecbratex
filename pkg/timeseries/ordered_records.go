@@ -8,14 +8,7 @@ import (
 )
 
 // OrderedRecords is an implementation of the Records interface.
-// It provides O(n) access to rates for any given date. The only benefit of
-// using OrderedRecords is that it maintains the order of rates and is
-// sorted in anti-chronological order. This means that rates are stored in a slice,
-// ensuring they are easily accessible and in the desired order.
-//
-// Use OrderedRecords when memory constraints are not a concern, and you need
-// rates to be ordered for specific operations. If memory is not an issue or the order
-// of rates is not important, consider using UnorderedRecords or OrderedUnorderedRecords instead.
+// It stores records in a sorted slice, so the order of records is easily accessible.
 type OrderedRecords []record.WithDate
 
 // NewOrderedRecords creates new empty OrderedRecords.
@@ -43,10 +36,14 @@ func NewOrderedRecordsFromXML(xmlData *xml.Data) (OrderedRecords, error) {
 	return records, nil
 }
 
+// Slice returns the underlying slice containing all records in anti-chronological order.
+// Operates on O(1) time complexity.
 func (r OrderedRecords) Slice() []record.WithDate {
 	return r
 }
 
+// Map creates and returns map of all records indexed by date.
+// Operates on O(n) time complexity.
 func (r OrderedRecords) Map() map[record.Date]record.Record {
 	result := make(map[record.Date]record.Record)
 	for _, rec := range r {
@@ -55,6 +52,8 @@ func (r OrderedRecords) Map() map[record.Date]record.Record {
 	return result
 }
 
+// Rates returns rates on the given date.
+// Operates on O(n) time complexity.
 func (r OrderedRecords) Rates(date date.Date) (record.Record, bool) {
 	recDate := record.DateFromDate(date)
 	for _, rec := range r {
@@ -65,6 +64,8 @@ func (r OrderedRecords) Rates(date date.Date) (record.Record, bool) {
 	return nil, false
 }
 
+// Rate returns rate of the given currency on the given date.
+// Operates on O(n) time complexity.
 func (r OrderedRecords) Rate(date date.Date, string string) (float32, bool) {
 	rec, found := r.Rates(date)
 	if !found {
@@ -79,6 +80,8 @@ func (r OrderedRecords) Rate(date date.Date, string string) (float32, bool) {
 	return rate, true
 }
 
+// ApproximateRates approximates and returns approximated rates on the given date.
+// Operates on O(rangeLim) time complexity.
 func (r OrderedRecords) ApproximateRates(date date.Date, rangeLim int) (record.Record, bool) {
 	recDate := record.DateFromDate(date)
 
@@ -124,6 +127,8 @@ func (r OrderedRecords) ApproximateRates(date date.Date, rangeLim int) (record.R
 	return rec, true
 }
 
+// ApproximateRate approximates and returns approximated rate of the given currency on the given date.
+// Operates on O(rangeLim) time complexity.
 func (r OrderedRecords) ApproximateRate(date date.Date, string string, rangeLim int) (float32, bool) {
 	recDate := record.DateFromDate(date)
 
@@ -161,6 +166,8 @@ func (r OrderedRecords) ApproximateRate(date date.Date, string string, rangeLim 
 	return (earlierRate + laterRate) / 2, true
 }
 
+// Convert converts amount from one currency to another on the given date.
+// Operates on O(n) time complexity.
 func (r OrderedRecords) Convert(date date.Date, amount float32, from string, to string) (float32, error) {
 	rec, found := r.Rates(date)
 	if !found {
@@ -174,6 +181,9 @@ func (r OrderedRecords) Convert(date date.Date, amount float32, from string, to 
 	return result, nil
 }
 
+// ConvertApproximate approximates rates on the given date
+// and uses them to convert amount from one currency to another on the given date.
+// Operates on O(n) time complexity.
 func (r OrderedRecords) ConvertApproximate(date date.Date, amount float32, from string, to string, rangeLim int) (float32, error) {
 	rates, found := r.ApproximateRates(date, rangeLim)
 	if !found {
@@ -188,6 +198,7 @@ func (r OrderedRecords) ConvertApproximate(date date.Date, amount float32, from 
 }
 
 // nearestEarlierRecord finds the closest earlier rate record to the given date within the specified range.
+// Operates on O(rangeLim) time complexity.
 func (r OrderedRecords) nearestEarlierRecord(recDate record.Date, rangeLim int) (record.Record, bool) {
 	earlierRecIndex := -1
 	for i, rec := range r {
@@ -208,6 +219,7 @@ func (r OrderedRecords) nearestEarlierRecord(recDate record.Date, rangeLim int) 
 }
 
 // nearestLaterRecord finds the closest later rate record to the given date within the specified range.
+// Operates on O(rangeLim) time complexity.
 func (r OrderedRecords) nearestLaterRecord(recDate record.Date, rangeLim int) (record.Record, bool) {
 	laterRecIndex := -1
 	for i, rec := range r {

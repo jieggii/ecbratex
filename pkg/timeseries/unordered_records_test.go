@@ -47,6 +47,34 @@ func TestNewUnorderedRecordsFromXML(t *testing.T) {
 	})
 }
 
+func TestUnorderedRecords_Slice(t *testing.T) {
+	var (
+		date1 = record.NewDate(2000, 1, 3)
+		date2 = record.NewDate(2000, 1, 2)
+		date3 = record.NewDate(2000, 1, 1)
+
+		rec1 = record.Record{"USD": 0.7}
+		rec2 = record.Record{"USD": 0.8}
+		rec3 = record.Record{"USD": 0.9}
+	)
+
+	records := UnorderedRecords{
+		date1: rec1,
+		date2: rec2,
+		date3: rec3,
+	}
+
+	assert.Equal(
+		t,
+		[]record.WithDate{
+			record.NewWithDate(rec1, date1),
+			record.NewWithDate(rec2, date2),
+			record.NewWithDate(rec3, date3),
+		},
+		records.Slice(),
+	)
+}
+
 func TestUnorderedRecords_Map(t *testing.T) {
 	var (
 		recDate = record.NewDate(2000, 1, 1)
@@ -69,8 +97,7 @@ func TestUnorderedRecords_Rates(t *testing.T) {
 		},
 	}
 
-	t.Run("get rates on exi"+
-		"sting date", func(t *testing.T) {
+	t.Run("get rates on existing date", func(t *testing.T) {
 		rates, found := records.Rates(record.NewDate(2024, 12, 1))
 		if assert.True(t, found) {
 			assert.Equal(t, record.Record{"USD": USDRate, "RUB": RUBRate}, rates)
@@ -92,7 +119,7 @@ func TestUnorderedRecords_Rate(t *testing.T) {
 	)
 
 	t.Run("get existing rate on existing date", func(t *testing.T) {
-		records := UnorderedRecords{
+		var records = UnorderedRecords{
 			record.NewDate(2024, 12, 1): {
 				"USD": USDRate,
 				"RUB": RUBRate,
@@ -106,7 +133,7 @@ func TestUnorderedRecords_Rate(t *testing.T) {
 	})
 
 	t.Run("get non-existent rate on existing date", func(t *testing.T) {
-		records := UnorderedRecords{
+		var records = UnorderedRecords{
 			record.NewDate(2024, 12, 1): {
 				"USD": USDRate,
 				"RUB": RUBRate,
@@ -120,7 +147,7 @@ func TestUnorderedRecords_Rate(t *testing.T) {
 	})
 
 	t.Run("get rate on non-existing date", func(t *testing.T) {
-		records := UnorderedRecords{
+		var records = UnorderedRecords{
 			record.NewDate(2024, 12, 1): {
 				"USD": USDRate,
 				"RUB": RUBRate,
@@ -135,21 +162,21 @@ func TestUnorderedRecords_Rate(t *testing.T) {
 }
 
 func TestUnorderedRecords_ApproximateRates(t *testing.T) {
-	var (
-		record1Date = record.NewDate(2000, 1, 1)
-		record1     = record.Record{"USD": 0.1, "RUB": 0.5}
-
-		record2Date = record.NewDate(2000, 1, 30)
-		record2     = record.Record{"USD": 1.0, "RUB": 0.1}
-	)
-
-	records := UnorderedRecords{
-		record1Date: record1,
-		record2Date: record2,
-	}
-
 	t.Run("rangeLim covering both earlier and later records", func(t *testing.T) {
 		const rangeLim = 100
+
+		var (
+			record1Date = record.NewDate(2000, 1, 1)
+			record1     = record.Record{"USD": 0.1, "RUB": 0.5}
+
+			record2Date = record.NewDate(2000, 1, 30)
+			record2     = record.Record{"USD": 1.0, "RUB": 0.1}
+		)
+
+		records := UnorderedRecords{
+			record1Date: record1,
+			record2Date: record2,
+		}
 
 		result, found := records.ApproximateRates(record.NewDate(2000, 1, 16), rangeLim)
 		if assert.True(t, found) {
@@ -161,6 +188,19 @@ func TestUnorderedRecords_ApproximateRates(t *testing.T) {
 	t.Run("rangeLim covering only earlier record", func(t *testing.T) {
 		const rangeLim = 1
 
+		var (
+			record1Date = record.NewDate(2000, 1, 1)
+			record1     = record.Record{"USD": 0.1, "RUB": 0.5}
+
+			record2Date = record.NewDate(2000, 1, 30)
+			record2     = record.Record{"USD": 1.0, "RUB": 0.1}
+		)
+
+		records := UnorderedRecords{
+			record1Date: record1,
+			record2Date: record2,
+		}
+
 		result, found := records.ApproximateRates(record.NewDate(2000, 1, 2), rangeLim)
 		if assert.True(t, found) {
 			assert.Equal(t, record1["USD"], result["USD"])
@@ -171,6 +211,19 @@ func TestUnorderedRecords_ApproximateRates(t *testing.T) {
 	t.Run("rangeLim covering only later record", func(t *testing.T) {
 		const rangeLim = 1
 
+		var (
+			record1Date = record.NewDate(2000, 1, 1)
+			record1     = record.Record{"USD": 0.1, "RUB": 0.5}
+
+			record2Date = record.NewDate(2000, 1, 30)
+			record2     = record.Record{"USD": 1.0, "RUB": 0.1}
+		)
+
+		records := UnorderedRecords{
+			record1Date: record1,
+			record2Date: record2,
+		}
+
 		result, found := records.ApproximateRates(record.NewDate(2000, 1, 29), rangeLim)
 		if assert.True(t, found) {
 			assert.Equal(t, record2["USD"], result["USD"])
@@ -180,6 +233,19 @@ func TestUnorderedRecords_ApproximateRates(t *testing.T) {
 
 	t.Run("rangeLim covering neither earlier nor later record", func(t *testing.T) {
 		const rangeLim = 5
+
+		var (
+			record1Date = record.NewDate(2000, 1, 1)
+			record1     = record.Record{"USD": 0.1, "RUB": 0.5}
+
+			record2Date = record.NewDate(2000, 1, 30)
+			record2     = record.Record{"USD": 1.0, "RUB": 0.1}
+		)
+
+		records := UnorderedRecords{
+			record1Date: record1,
+			record2Date: record2,
+		}
 
 		result, found := records.ApproximateRates(record.NewDate(2000, 1, 15), rangeLim)
 		if assert.False(t, found) {
@@ -230,6 +296,28 @@ func TestUnorderedRecords_ApproximateRates(t *testing.T) {
 		if assert.True(t, found) {
 			assert.Equal(t, (record1["USD"]+record2["USD"])/2, result["USD"])
 			assert.Equal(t, record1["RUB"], result["RUB"])
+		}
+	})
+
+	t.Run("zero rangeLim", func(t *testing.T) {
+		const rangeLim = 0
+
+		var (
+			record1Date = record.NewDate(2000, 1, 30)
+			record1     = record.Record{}
+
+			record2Date = record.NewDate(2000, 1, 1)
+			record2     = record.Record{}
+		)
+
+		records := OrderedRecords{
+			record.NewWithDate(record1, record1Date),
+			record.NewWithDate(record2, record2Date),
+		}
+
+		result, found := records.ApproximateRates(record.NewDate(2000, 1, 16), rangeLim)
+		if assert.False(t, found) {
+			assert.Zero(t, result)
 		}
 	})
 }
@@ -471,13 +559,13 @@ func TestUnorderedRecords_ConvertApproximate(t *testing.T) {
 			}
 		)
 
-		result, err := records.ConvertApproximate(record.NewDate(2000, 1, 16), amount, "RUB", "USD", rangeLim)
+		result, err := records.ConvertApproximate(record.NewDate(2000, 1, 16), amount, "USD", "RUB", rangeLim)
 		if assert.NoError(t, err) {
 			var (
 				usdRate = (record1["USD"] + record2["USD"]) / 2
 				rubRate = record1["RUB"]
 			)
-			assert.Equal(t, amount*(rubRate/usdRate), result)
+			assert.Equal(t, amount*(usdRate/rubRate), result)
 		}
 	})
 

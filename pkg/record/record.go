@@ -22,8 +22,8 @@ func New() Record {
 }
 
 // Rate returns rate of a given string and a boolean indicating whether string was found in the rates record.
-func (r Record) Rate(string string) (float32, bool) {
-	rate, found := r[string]
+func (r Record) Rate(currency string) (float32, bool) {
+	rate, found := r[currency]
 	if !found {
 		return 0, false
 	}

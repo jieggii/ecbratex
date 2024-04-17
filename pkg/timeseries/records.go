@@ -17,14 +17,10 @@ var (
 // However, rangeLim argument does not affect performance, so, I think, that 100 is a good value in such situation.
 const DefaultRangeLim = 100
 
-// Records provides methods for accessing historical rates data.
+// Records describes a wrapper around historical rates data.
+// It provides useful functions for retrieving or approximating rates and
+// functions for converting amounts from one currency to another.
 type Records interface {
-	// Slice returns slice of all exchange rates records in the anti-chronological order.
-	Slice() []record.WithDate
-
-	// Map returns map containing all exchange rates records indexed by their date.
-	Map() map[record.Date]record.Record
-
 	// Rates retrieves currency rates for the given date.
 	// It returns the rates record for the specified date and a boolean indicating whether the record was found.
 	Rates(date date.Date) (record.Record, bool)
@@ -65,4 +61,10 @@ type Records interface {
 
 	// ConvertMinorsApproximate TODO
 	//ConvertMinorsApproximate(date date.Date, amount int, from string, to string, rangeLim int) (int, error)
+
+	// Slice returns slice of all exchange rates records in the anti-chronological order.
+	Slice() []record.WithDate
+
+	// Map returns map containing all exchange rates records indexed by their date.
+	Map() map[record.Date]record.Record
 }
