@@ -1,7 +1,6 @@
 package timeseries
 
 import (
-	"fmt"
 	"github.com/jieggii/ecbratex/pkg/date"
 	"github.com/jieggii/ecbratex/pkg/record"
 	"github.com/jieggii/ecbratex/pkg/xml"
@@ -177,29 +176,61 @@ func (r UnorderedRecords) ApproximateRate(date date.Date, currency string, range
 func (r UnorderedRecords) Convert(date date.Date, amount float32, from string, to string) (float32, error) {
 	rec, found := r.Rates(date)
 	if !found {
-		return 0, fmt.Errorf("get rates record on %s: %w", date.String(), ErrRatesRecordNotFound)
+		return 0, ErrRatesRecordNotFound
 	}
 
 	result, err := rec.Convert(amount, from, to)
 	if err != nil {
-		return 0, fmt.Errorf("convert %s to %s: %w", from, to, err)
+		return 0, err
 	}
 	return result, nil
 }
 
-// ConvertApproximate approximates rates on the given date
-// and uses them to convert amount from one currency to another on the given date.
-// Operates on O(n) time complexity.
+// ConvertApproximate converts amount from one currency to another on the given date,
+// using approximated rates within rangeLim days.
+// Operates on O(rangeLim) time complexity.
 func (r UnorderedRecords) ConvertApproximate(date date.Date, amount float32, from string, to string, rangeLim int) (float32, error) {
 	rates, found := r.ApproximateRates(date, rangeLim)
 	if !found {
-		return 0, fmt.Errorf("approximate rates on %s within range of %d days: %w", date.String(), rangeLim, ErrRateApproximationFailed)
+		return 0, ErrRateApproximationFailed
 
 	}
 
 	result, err := rates.Convert(amount, from, to)
 	if err != nil {
-		return 0, fmt.Errorf("convert %s to %s: %w", from, to, err)
+		return 0, err
+	}
+	return result, nil
+}
+
+// ConvertMinors converts amount in minor units from one currency to another on the given date.
+// Operates on O(1) time complexity.
+func (r UnorderedRecords) ConvertMinors(date date.Date, amount int, from string, to string) (int, error) {
+	rec, found := r.Rates(date)
+	if !found {
+		return 0, ErrRatesRecordNotFound
+	}
+
+	result, err := rec.ConvertMinors(amount, from, to)
+	if err != nil {
+		return 0, err
+	}
+	return result, nil
+}
+
+// ConvertMinorsApproximate converts amount in minor units from one currency to another on the given date,
+// using approximated rates within rangeLim days.
+// Operates on O(rangeLim) time complexity.
+func (r UnorderedRecords) ConvertMinorsApproximate(date date.Date, amount int, from string, to string, rangeLim int) (int, error) {
+	rates, found := r.ApproximateRates(date, rangeLim)
+	if !found {
+		return 0, ErrRateApproximationFailed
+
+	}
+
+	result, err := rates.ConvertMinors(amount, from, to)
+	if err != nil {
+		return 0, err
 	}
 	return result, nil
 }

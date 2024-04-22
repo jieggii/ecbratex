@@ -23,13 +23,6 @@ func TestRecord_Rate(t *testing.T) {
 		}
 	})
 
-	t.Run("EUR rate", func(t *testing.T) {
-		rate, found := record.Rate("EUR")
-		if assert.True(t, found) {
-			assert.Equal(t, float32(1), rate)
-		}
-	})
-
 	t.Run("non-existent rate", func(t *testing.T) {
 		rate, found := record.Rate("XXX")
 		if assert.False(t, found) {

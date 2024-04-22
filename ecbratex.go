@@ -61,7 +61,7 @@ func FetchLatest() (*record.WithDate, error) {
 
 // FetchTimeSeries fetches rate records within the given period using Provider.
 // Returns records represented as timeseries.RecordsMap.
-func FetchTimeSeries(period Period) (timeseries.Records, error) {
+func FetchTimeSeries(period Period) (timeseries.UnorderedRecords, error) {
 	dataKind, err := period.DataKind()
 	if err != nil {
 		return nil, err
@@ -82,7 +82,7 @@ func FetchTimeSeries(period Period) (timeseries.Records, error) {
 
 // FetchOrderedTimeSeries fetches rate records within the given period using Provider.
 // Returns records represented as timeseries.RecordsSlice.
-func FetchOrderedTimeSeries(period Period) (timeseries.Records, error) {
+func FetchOrderedTimeSeries(period Period) (timeseries.OrderedRecords, error) {
 	dataKind, err := period.DataKind()
 	if err != nil {
 		return nil, err
@@ -103,7 +103,7 @@ func FetchOrderedTimeSeries(period Period) (timeseries.Records, error) {
 
 // FetchOrderedUnorderedTimeSeries fetches rate records within the given period using Provider.
 // Returns records represented as timeseries.RecordsSliceMap.
-func FetchOrderedUnorderedTimeSeries(period Period) (timeseries.Records, error) {
+func FetchOrderedUnorderedTimeSeries(period Period) (*timeseries.OrderedUnorderedRecords, error) {
 	dataKind, err := period.DataKind()
 	if err != nil {
 		return nil, err

@@ -4,26 +4,40 @@ import (
 	"github.com/jieggii/ecbratex/pkg/record"
 	"github.com/jieggii/ecbratex/pkg/xml"
 	"github.com/stretchr/testify/assert"
+	"math"
 	"testing"
 )
 
 func TestNewUnorderedRecordsFromXML(t *testing.T) {
 	t.Run("valid data", func(t *testing.T) {
+		const USDRate float32 = 0.9
+		var date = record.NewDate(2024, 12, 2)
+
 		data := &xml.Data{
 			Cubes: []xml.DataCube{
-				{Date: "2024-12-02", Rates: []xml.DataCubeRate{{"USD", 0.9}}},
+				{Date: date.String(), Rates: []xml.DataCubeRate{
+					{"USD", USDRate},
+				}},
 			},
 		}
 		records, err := NewUnorderedRecordsFromXML(data)
 		if assert.NoError(t, err) {
-			assert.Len(t, records, 1)
+			assert.Equal(
+				t,
+				UnorderedRecords{
+					date: record.Record{"EUR": 1, "USD": USDRate},
+				},
+				records,
+			)
 		}
 	})
 
 	t.Run("data with invalid date", func(t *testing.T) {
 		data := &xml.Data{
 			Cubes: []xml.DataCube{
-				{Date: "invalid date", Rates: []xml.DataCubeRate{{"USD", 0.9}}},
+				{Date: "invalid date", Rates: []xml.DataCubeRate{
+					{"USD", 0.9},
+				}},
 			},
 		}
 		records, err := NewUnorderedRecordsFromXML(data)
@@ -50,12 +64,13 @@ func TestNewUnorderedRecordsFromXML(t *testing.T) {
 func TestUnorderedRecords_Slice(t *testing.T) {
 	var (
 		date1 = record.NewDate(2000, 1, 3)
-		date2 = record.NewDate(2000, 1, 2)
-		date3 = record.NewDate(2000, 1, 1)
+		rec1  = record.Record{"USD": 0.7}
 
-		rec1 = record.Record{"USD": 0.7}
-		rec2 = record.Record{"USD": 0.8}
-		rec3 = record.Record{"USD": 0.9}
+		date2 = record.NewDate(2000, 1, 2)
+		rec2  = record.Record{"USD": 0.8}
+
+		date3 = record.NewDate(2000, 1, 1)
+		rec3  = record.Record{"USD": 0.9}
 	)
 
 	records := UnorderedRecords{
@@ -89,16 +104,17 @@ func TestUnorderedRecords_Rates(t *testing.T) {
 		USDRate float32 = 0.9
 		RUBRate float32 = 0.01
 	)
+	var date = record.NewDate(2024, 12, 1)
 
 	records := UnorderedRecords{
-		record.NewDate(2024, 12, 1): {
+		date: {
 			"USD": USDRate,
 			"RUB": RUBRate,
 		},
 	}
 
 	t.Run("get rates on existing date", func(t *testing.T) {
-		rates, found := records.Rates(record.NewDate(2024, 12, 1))
+		rates, found := records.Rates(date)
 		if assert.True(t, found) {
 			assert.Equal(t, record.Record{"USD": USDRate, "RUB": RUBRate}, rates)
 		}
@@ -117,16 +133,17 @@ func TestUnorderedRecords_Rate(t *testing.T) {
 		USDRate float32 = 0.9
 		RUBRate float32 = 0.01
 	)
+	var date = record.NewDate(2024, 12, 1)
 
 	t.Run("get existing rate on existing date", func(t *testing.T) {
 		var records = UnorderedRecords{
-			record.NewDate(2024, 12, 1): {
+			date: {
 				"USD": USDRate,
 				"RUB": RUBRate,
 			},
 		}
 
-		rate, found := records.Rate(record.NewDate(2024, 12, 1), "USD")
+		rate, found := records.Rate(date, "USD")
 		if assert.True(t, found) {
 			assert.Equal(t, USDRate, rate)
 		}
@@ -134,13 +151,13 @@ func TestUnorderedRecords_Rate(t *testing.T) {
 
 	t.Run("get non-existent rate on existing date", func(t *testing.T) {
 		var records = UnorderedRecords{
-			record.NewDate(2024, 12, 1): {
+			date: {
 				"USD": USDRate,
 				"RUB": RUBRate,
 			},
 		}
 
-		rate, found := records.Rate(record.NewDate(2024, 12, 1), "XXX")
+		rate, found := records.Rate(date, "XXX")
 		if assert.False(t, found) {
 			assert.Zero(t, rate)
 		}
@@ -148,13 +165,13 @@ func TestUnorderedRecords_Rate(t *testing.T) {
 
 	t.Run("get rate on non-existing date", func(t *testing.T) {
 		var records = UnorderedRecords{
-			record.NewDate(2024, 12, 1): {
+			date: {
 				"USD": USDRate,
 				"RUB": RUBRate,
 			},
 		}
 
-		rate, found := records.Rate(record.NewDate(2000, 1, 5), "USD")
+		rate, found := records.Rate(record.NewDate(1500, 1, 5), "USD")
 		if assert.False(t, found) {
 			assert.Zero(t, rate)
 		}
@@ -166,22 +183,22 @@ func TestUnorderedRecords_ApproximateRates(t *testing.T) {
 		const rangeLim = 100
 
 		var (
-			record1Date = record.NewDate(2000, 1, 1)
-			record1     = record.Record{"USD": 0.1, "RUB": 0.5}
+			date1 = record.NewDate(2000, 1, 1)
+			rec1  = record.Record{"USD": 0.1, "RUB": 0.5}
 
-			record2Date = record.NewDate(2000, 1, 30)
-			record2     = record.Record{"USD": 1.0, "RUB": 0.1}
+			date2 = record.NewDate(2000, 1, 30)
+			rec2  = record.Record{"USD": 1.0, "RUB": 0.1}
 		)
 
 		records := UnorderedRecords{
-			record1Date: record1,
-			record2Date: record2,
+			date1: rec1,
+			date2: rec2,
 		}
 
 		result, found := records.ApproximateRates(record.NewDate(2000, 1, 16), rangeLim)
 		if assert.True(t, found) {
-			assert.Equal(t, (record1["USD"]+record2["USD"])/2, result["USD"])
-			assert.Equal(t, (record1["RUB"]+record2["RUB"])/2, result["RUB"])
+			assert.Equal(t, (rec1["USD"]+rec2["USD"])/2, result["USD"])
+			assert.Equal(t, (rec1["RUB"]+rec2["RUB"])/2, result["RUB"])
 		}
 	})
 
@@ -189,22 +206,22 @@ func TestUnorderedRecords_ApproximateRates(t *testing.T) {
 		const rangeLim = 1
 
 		var (
-			record1Date = record.NewDate(2000, 1, 1)
-			record1     = record.Record{"USD": 0.1, "RUB": 0.5}
+			date1 = record.NewDate(2000, 1, 1)
+			rec1  = record.Record{"USD": 0.1, "RUB": 0.5}
 
-			record2Date = record.NewDate(2000, 1, 30)
-			record2     = record.Record{"USD": 1.0, "RUB": 0.1}
+			date2 = record.NewDate(2000, 1, 30)
+			rec2  = record.Record{"USD": 1.0, "RUB": 0.1}
 		)
 
 		records := UnorderedRecords{
-			record1Date: record1,
-			record2Date: record2,
+			date1: rec1,
+			date2: rec2,
 		}
 
 		result, found := records.ApproximateRates(record.NewDate(2000, 1, 2), rangeLim)
 		if assert.True(t, found) {
-			assert.Equal(t, record1["USD"], result["USD"])
-			assert.Equal(t, record1["RUB"], result["RUB"])
+			assert.Equal(t, rec1["USD"], result["USD"])
+			assert.Equal(t, rec1["RUB"], result["RUB"])
 		}
 	})
 
@@ -212,22 +229,22 @@ func TestUnorderedRecords_ApproximateRates(t *testing.T) {
 		const rangeLim = 1
 
 		var (
-			record1Date = record.NewDate(2000, 1, 1)
-			record1     = record.Record{"USD": 0.1, "RUB": 0.5}
+			date1 = record.NewDate(2000, 1, 1)
+			rec1  = record.Record{"USD": 0.1, "RUB": 0.5}
 
-			record2Date = record.NewDate(2000, 1, 30)
-			record2     = record.Record{"USD": 1.0, "RUB": 0.1}
+			date2 = record.NewDate(2000, 1, 30)
+			rec2  = record.Record{"USD": 1.0, "RUB": 0.1}
 		)
 
 		records := UnorderedRecords{
-			record1Date: record1,
-			record2Date: record2,
+			date1: rec1,
+			date2: rec2,
 		}
 
 		result, found := records.ApproximateRates(record.NewDate(2000, 1, 29), rangeLim)
 		if assert.True(t, found) {
-			assert.Equal(t, record2["USD"], result["USD"])
-			assert.Equal(t, record2["RUB"], result["RUB"])
+			assert.Equal(t, rec2["USD"], result["USD"])
+			assert.Equal(t, rec2["RUB"], result["RUB"])
 		}
 	})
 
@@ -235,16 +252,16 @@ func TestUnorderedRecords_ApproximateRates(t *testing.T) {
 		const rangeLim = 5
 
 		var (
-			record1Date = record.NewDate(2000, 1, 1)
-			record1     = record.Record{"USD": 0.1, "RUB": 0.5}
+			date1 = record.NewDate(2000, 1, 1)
+			rec1  = record.Record{"USD": 0.1, "RUB": 0.5}
 
-			record2Date = record.NewDate(2000, 1, 30)
-			record2     = record.Record{"USD": 1.0, "RUB": 0.1}
+			date2 = record.NewDate(2000, 1, 30)
+			rec2  = record.Record{"USD": 1.0, "RUB": 0.1}
 		)
 
 		records := UnorderedRecords{
-			record1Date: record1,
-			record2Date: record2,
+			date1: rec1,
+			date2: rec2,
 		}
 
 		result, found := records.ApproximateRates(record.NewDate(2000, 1, 15), rangeLim)
@@ -257,22 +274,22 @@ func TestUnorderedRecords_ApproximateRates(t *testing.T) {
 		const rangeLim = 100
 
 		var (
-			record1Date = record.NewDate(2000, 1, 1)
-			record1     = record.Record{"USD": 0.1}
+			date1 = record.NewDate(2000, 1, 1)
+			rec1  = record.Record{"USD": 0.1}
 
-			record2Date = record.NewDate(2000, 1, 30)
-			record2     = record.Record{"USD": 1.0, "RUB": 0.1}
+			date2 = record.NewDate(2000, 1, 30)
+			rec2  = record.Record{"USD": 1.0, "RUB": 0.1}
 		)
 
 		records := UnorderedRecords{
-			record1Date: record1,
-			record2Date: record2,
+			date1: rec1,
+			date2: rec2,
 		}
 
 		result, found := records.ApproximateRates(record.NewDate(2000, 1, 16), rangeLim)
 		if assert.True(t, found) {
-			assert.Equal(t, (record1["USD"]+record2["USD"])/2, result["USD"])
-			assert.Equal(t, record2["RUB"], result["RUB"])
+			assert.Equal(t, (rec1["USD"]+rec2["USD"])/2, result["USD"])
+			assert.Equal(t, rec2["RUB"], result["RUB"])
 		}
 	})
 
@@ -280,22 +297,22 @@ func TestUnorderedRecords_ApproximateRates(t *testing.T) {
 		const rangeLim = 100
 
 		var (
-			record1Date = record.NewDate(2000, 1, 1)
-			record1     = record.Record{"USD": 0.1, "RUB": 0.5}
+			date1 = record.NewDate(2000, 1, 1)
+			rec1  = record.Record{"USD": 0.1, "RUB": 0.5}
 
-			record2Date = record.NewDate(2000, 1, 30)
-			record2     = record.Record{"USD": 1.0}
+			date2 = record.NewDate(2000, 1, 30)
+			rec2  = record.Record{"USD": 1.0}
 		)
 
 		records := UnorderedRecords{
-			record1Date: record1,
-			record2Date: record2,
+			date1: rec1,
+			date2: rec2,
 		}
 
 		result, found := records.ApproximateRates(record.NewDate(2000, 1, 16), rangeLim)
 		if assert.True(t, found) {
-			assert.Equal(t, (record1["USD"]+record2["USD"])/2, result["USD"])
-			assert.Equal(t, record1["RUB"], result["RUB"])
+			assert.Equal(t, (rec1["USD"]+rec2["USD"])/2, result["USD"])
+			assert.Equal(t, rec1["RUB"], result["RUB"])
 		}
 	})
 
@@ -303,16 +320,16 @@ func TestUnorderedRecords_ApproximateRates(t *testing.T) {
 		const rangeLim = 0
 
 		var (
-			record1Date = record.NewDate(2000, 1, 30)
-			record1     = record.Record{}
+			date1 = record.NewDate(2000, 1, 30)
+			rec1  = record.Record{}
 
-			record2Date = record.NewDate(2000, 1, 1)
-			record2     = record.Record{}
+			date2 = record.NewDate(2000, 1, 1)
+			rec2  = record.Record{}
 		)
 
 		records := OrderedRecords{
-			record.NewWithDate(record1, record1Date),
-			record.NewWithDate(record2, record2Date),
+			record.NewWithDate(rec1, date1),
+			record.NewWithDate(rec2, date2),
 		}
 
 		result, found := records.ApproximateRates(record.NewDate(2000, 1, 16), rangeLim)
@@ -327,17 +344,21 @@ func TestUnorderedRecords_ApproximateRate(t *testing.T) {
 		const rangeLim = 100
 
 		var (
-			record1 = record.Record{"USD": 0.1, "RUB": 0.5}
-			record2 = record.Record{"USD": 1.0, "RUB": 0.1}
-			records = UnorderedRecords{
-				record.NewDate(2000, 1, 1):  record1,
-				record.NewDate(2000, 1, 30): record2,
-			}
+			date1 = record.NewDate(2000, 1, 1)
+			rec1  = record.Record{"USD": 0.1, "RUB": 0.5}
+
+			date2 = record.NewDate(2000, 1, 30)
+			rec2  = record.Record{"USD": 1.0, "RUB": 0.1}
 		)
+
+		records := UnorderedRecords{
+			date1: rec1,
+			date2: rec2,
+		}
 
 		rate, found := records.ApproximateRate(record.NewDate(2000, 1, 16), "USD", rangeLim)
 		if assert.True(t, found) {
-			assert.Equal(t, (record1["USD"]+record2["USD"])/2, rate)
+			assert.Equal(t, (rec1["USD"]+rec2["USD"])/2, rate)
 		}
 	})
 
@@ -345,17 +366,21 @@ func TestUnorderedRecords_ApproximateRate(t *testing.T) {
 		const rangeLim = 100
 
 		var (
-			record1 = record.Record{"USD": 0.1}
-			record2 = record.Record{"USD": 1.0, "RUB": 0.22}
-			records = UnorderedRecords{
-				record.NewDate(2000, 1, 1):  record1,
-				record.NewDate(2000, 1, 30): record2,
-			}
+			date1 = record.NewDate(2000, 1, 1)
+			rec1  = record.Record{"USD": 0.1}
+
+			date2 = record.NewDate(2000, 1, 30)
+			rec2  = record.Record{"USD": 1.0, "RUB": 0.22}
 		)
+
+		records := UnorderedRecords{
+			date1: rec1,
+			date2: rec2,
+		}
 
 		rate, found := records.ApproximateRate(record.NewDate(2000, 1, 16), "RUB", rangeLim)
 		if assert.True(t, found) {
-			assert.Equal(t, record2["RUB"], rate)
+			assert.Equal(t, rec2["RUB"], rate)
 		}
 	})
 
@@ -363,17 +388,21 @@ func TestUnorderedRecords_ApproximateRate(t *testing.T) {
 		const rangeLim = 100
 
 		var (
-			record1 = record.Record{"USD": 0.1, "RUB": 0.22}
-			record2 = record.Record{"USD": 1.0}
-			records = UnorderedRecords{
-				record.NewDate(2000, 1, 1):  record1,
-				record.NewDate(2000, 1, 30): record2,
-			}
+			date1 = record.NewDate(2000, 1, 1)
+			rec1  = record.Record{"USD": 0.1, "RUB": 0.22}
+
+			date2 = record.NewDate(2000, 1, 30)
+			rec2  = record.Record{"USD": 1.0}
 		)
+
+		records := UnorderedRecords{
+			date1: rec1,
+			date2: rec2,
+		}
 
 		rate, found := records.ApproximateRate(record.NewDate(2000, 1, 16), "RUB", rangeLim)
 		if assert.True(t, found) {
-			assert.Equal(t, record1["RUB"], rate)
+			assert.Equal(t, rec1["RUB"], rate)
 		}
 	})
 
@@ -381,13 +410,17 @@ func TestUnorderedRecords_ApproximateRate(t *testing.T) {
 		const rangeLim = 100
 
 		var (
-			record1 = record.Record{"USD": 0.1, "RUB": 0.22}
-			record2 = record.Record{"USD": 1.0, "RUB": 0.123}
-			records = UnorderedRecords{
-				record.NewDate(2000, 1, 1):  record1,
-				record.NewDate(2000, 1, 30): record2,
-			}
+			date1 = record.NewDate(2000, 1, 1)
+			rec1  = record.Record{"USD": 0.1, "RUB": 0.22}
+
+			date2 = record.NewDate(2000, 1, 30)
+			rec2  = record.Record{"USD": 1.0, "RUB": 0.123}
 		)
+
+		records := UnorderedRecords{
+			date1: rec1,
+			date2: rec2,
+		}
 
 		rate, found := records.ApproximateRate(record.NewDate(2000, 1, 16), "XXX", rangeLim)
 		if assert.False(t, found) {
@@ -401,11 +434,12 @@ func TestUnorderedRecords_ApproximateRate(t *testing.T) {
 		var (
 			record1 = record.Record{"USD": 0.1, "RUB": 0.5}
 			record2 = record.Record{"USD": 1.0, "RUB": 0.1}
-			records = UnorderedRecords{
-				record.NewDate(2000, 1, 1):  record1,
-				record.NewDate(2000, 1, 30): record2,
-			}
 		)
+
+		records := UnorderedRecords{
+			record.NewDate(2000, 1, 1):  record1,
+			record.NewDate(2000, 1, 30): record2,
+		}
 
 		rate, found := records.ApproximateRate(record.NewDate(2000, 1, 2), "USD", rangeLim)
 		if assert.True(t, found) {
@@ -419,11 +453,12 @@ func TestUnorderedRecords_ApproximateRate(t *testing.T) {
 		var (
 			record1 = record.Record{"USD": 0.1, "RUB": 0.5}
 			record2 = record.Record{"USD": 1.0, "RUB": 0.1}
-			records = UnorderedRecords{
-				record.NewDate(2000, 1, 1):  record1,
-				record.NewDate(2000, 1, 30): record2,
-			}
 		)
+
+		records := UnorderedRecords{
+			record.NewDate(2000, 1, 1):  record1,
+			record.NewDate(2000, 1, 30): record2,
+		}
 
 		rate, found := records.ApproximateRate(record.NewDate(2000, 1, 29), "USD", rangeLim)
 		if assert.True(t, found) {
@@ -437,11 +472,12 @@ func TestUnorderedRecords_ApproximateRate(t *testing.T) {
 		var (
 			record1 = record.Record{"USD": 0.1, "RUB": 0.5}
 			record2 = record.Record{"USD": 1.0, "RUB": 0.1}
-			records = UnorderedRecords{
-				record.NewDate(2000, 1, 1):  record1,
-				record.NewDate(2000, 1, 30): record2,
-			}
 		)
+
+		records := UnorderedRecords{
+			record.NewDate(2000, 1, 1):  record1,
+			record.NewDate(2000, 1, 30): record2,
+		}
 
 		rate, found := records.ApproximateRate(record.NewDate(2000, 1, 15), "USD", rangeLim)
 		if assert.False(t, found) {
@@ -451,35 +487,35 @@ func TestUnorderedRecords_ApproximateRate(t *testing.T) {
 }
 
 func TestUnorderedRecords_Convert(t *testing.T) {
-	var recordDate = record.NewDate(2020, 1, 1)
+	var date = record.NewDate(2020, 1, 1)
 
 	const (
-		USDRate float32 = 1
-		RUBRate float32 = 0.5
+		USDRate float32 = 0.9
+		RUBRate float32 = 0.01
 	)
 
 	records := UnorderedRecords{
-		recordDate: record.Record{"USD": 1, "RUB": 0.5},
+		date: record.Record{"USD": USDRate, "RUB": RUBRate},
 	}
 
 	t.Run("existing date, existing from and existing to", func(t *testing.T) {
 		var amount float32 = 12
 
-		result, err := records.Convert(recordDate, amount, "USD", "RUB")
+		result, err := records.Convert(date, amount, "USD", "RUB")
 		if assert.NoError(t, err) {
 			assert.Equal(t, amount*(USDRate/RUBRate), result)
 		}
 	})
 
 	t.Run("existing date, non-existing from and existing to", func(t *testing.T) {
-		result, err := records.Convert(recordDate, 1, "XXX", "RUB")
+		result, err := records.Convert(date, 99, "XXX", "RUB")
 		if assert.ErrorIs(t, err, record.ErrRateNotFound) {
 			assert.Zero(t, result)
 		}
 	})
 
 	t.Run("existing date, existing from and non-existing to", func(t *testing.T) {
-		result, err := records.Convert(recordDate, 1, "USD", "XXX")
+		result, err := records.Convert(date, 99, "USD", "XXX")
 		if assert.ErrorIs(t, err, record.ErrRateNotFound) {
 			assert.Zero(t, result)
 		}
@@ -503,11 +539,11 @@ func TestUnorderedRecords_ConvertApproximate(t *testing.T) {
 		var (
 			record1 = record.Record{"USD": 0.1, "RUB": 0.5}
 			record2 = record.Record{"USD": 1.0, "RUB": 0.1}
-			records = UnorderedRecords{
-				record.NewDate(2000, 1, 1):  record1,
-				record.NewDate(2000, 1, 30): record2,
-			}
 		)
+		records := UnorderedRecords{
+			record.NewDate(2000, 1, 1):  record1,
+			record.NewDate(2000, 1, 30): record2,
+		}
 
 		result, err := records.ConvertApproximate(record.NewDate(2000, 1, 16), amount, "USD", "RUB", rangeLim)
 		if assert.NoError(t, err) {
@@ -528,11 +564,12 @@ func TestUnorderedRecords_ConvertApproximate(t *testing.T) {
 		var (
 			record1 = record.Record{"USD": 0.1}
 			record2 = record.Record{"USD": 1.0, "RUB": 0.22}
-			records = UnorderedRecords{
-				record.NewDate(2000, 1, 1):  record1,
-				record.NewDate(2000, 1, 30): record2,
-			}
 		)
+
+		records := UnorderedRecords{
+			record.NewDate(2000, 1, 1):  record1,
+			record.NewDate(2000, 1, 30): record2,
+		}
 
 		result, err := records.ConvertApproximate(record.NewDate(2000, 1, 16), amount, "USD", "RUB", rangeLim)
 		if assert.NoError(t, err) {
@@ -553,11 +590,12 @@ func TestUnorderedRecords_ConvertApproximate(t *testing.T) {
 		var (
 			record1 = record.Record{"USD": 0.1, "RUB": 0.22}
 			record2 = record.Record{"USD": 1.0}
-			records = UnorderedRecords{
-				record.NewDate(2000, 1, 1):  record1,
-				record.NewDate(2000, 1, 30): record2,
-			}
 		)
+
+		records := UnorderedRecords{
+			record.NewDate(2000, 1, 1):  record1,
+			record.NewDate(2000, 1, 30): record2,
+		}
 
 		result, err := records.ConvertApproximate(record.NewDate(2000, 1, 16), amount, "USD", "RUB", rangeLim)
 		if assert.NoError(t, err) {
@@ -578,11 +616,11 @@ func TestUnorderedRecords_ConvertApproximate(t *testing.T) {
 		var (
 			record1 = record.Record{"USD": 0.1, "RUB": 0.22}
 			record2 = record.Record{"USD": 1.0, "RUB": 0.123}
-			records = UnorderedRecords{
-				record.NewDate(2000, 1, 1):  record1,
-				record.NewDate(2000, 1, 30): record2,
-			}
 		)
+		records := UnorderedRecords{
+			record.NewDate(2000, 1, 1):  record1,
+			record.NewDate(2000, 1, 30): record2,
+		}
 
 		result, err := records.ConvertApproximate(record.NewDate(2000, 1, 16), amount, "USD", "XXX", rangeLim)
 		if assert.Error(t, err) {
@@ -599,11 +637,11 @@ func TestUnorderedRecords_ConvertApproximate(t *testing.T) {
 		var (
 			record1 = record.Record{"USD": 0.1, "RUB": 0.5}
 			record2 = record.Record{"USD": 1.0, "RUB": 0.1}
-			records = UnorderedRecords{
-				record.NewDate(2000, 1, 1):  record1,
-				record.NewDate(2000, 1, 30): record2,
-			}
 		)
+		records := UnorderedRecords{
+			record.NewDate(2000, 1, 1):  record1,
+			record.NewDate(2000, 1, 30): record2,
+		}
 
 		result, err := records.ConvertApproximate(record.NewDate(2000, 1, 2), amount, "USD", "RUB", rangeLim)
 		if assert.NoError(t, err) {
@@ -624,11 +662,11 @@ func TestUnorderedRecords_ConvertApproximate(t *testing.T) {
 		var (
 			record1 = record.Record{"USD": 0.1, "RUB": 0.5}
 			record2 = record.Record{"USD": 1.0, "RUB": 0.1}
-			records = UnorderedRecords{
-				record.NewDate(2000, 1, 1):  record1,
-				record.NewDate(2000, 1, 30): record2,
-			}
 		)
+		records := UnorderedRecords{
+			record.NewDate(2000, 1, 1):  record1,
+			record.NewDate(2000, 1, 30): record2,
+		}
 
 		result, err := records.ConvertApproximate(record.NewDate(2000, 1, 29), amount, "USD", "RUB", rangeLim)
 		if assert.NoError(t, err) {
@@ -649,13 +687,237 @@ func TestUnorderedRecords_ConvertApproximate(t *testing.T) {
 		var (
 			record1 = record.Record{"USD": 0.1, "RUB": 0.5}
 			record2 = record.Record{"USD": 1.0, "RUB": 0.1}
-			records = UnorderedRecords{
-				record.NewDate(2000, 1, 1):  record1,
-				record.NewDate(2000, 1, 30): record2,
-			}
 		)
+		records := UnorderedRecords{
+			record.NewDate(2000, 1, 1):  record1,
+			record.NewDate(2000, 1, 30): record2,
+		}
 
 		result, err := records.ConvertApproximate(record.NewDate(2000, 1, 15), amount, "USD", "RUB", rangeLim)
+		if assert.ErrorIs(t, err, ErrRateApproximationFailed) {
+			assert.Zero(t, result)
+		}
+	})
+}
+
+func TestUnorderedRecords_ConvertMinors(t *testing.T) {
+	var date = record.NewDate(2020, 1, 1)
+
+	const (
+		USDRate float32 = 0.9
+		RUBRate float32 = 0.01
+	)
+
+	records := UnorderedRecords{
+		date: record.Record{"USD": USDRate, "RUB": RUBRate},
+	}
+
+	t.Run("existing date, existing from and existing to", func(t *testing.T) {
+		var amount = 1234 // 12.34 USD
+
+		result, err := records.ConvertMinors(date, amount, "USD", "RUB")
+		if assert.NoError(t, err) {
+			expectedResult := int(math.Round(
+				float64(
+					float32(amount) * (USDRate / RUBRate),
+				),
+			))
+			assert.Equal(t, expectedResult, result)
+		}
+	})
+
+	t.Run("existing date, non-existing from and existing to", func(t *testing.T) {
+		result, err := records.ConvertMinors(date, 1234, "XXX", "RUB")
+		if assert.ErrorIs(t, err, record.ErrRateNotFound) {
+			assert.Zero(t, result)
+		}
+	})
+
+	t.Run("existing date, existing from and non-existing to", func(t *testing.T) {
+		result, err := records.ConvertMinors(date, 1234, "USD", "XXX")
+		if assert.ErrorIs(t, err, record.ErrRateNotFound) {
+			assert.Zero(t, result)
+		}
+	})
+
+	t.Run("non-existing date", func(t *testing.T) {
+		result, err := records.ConvertMinors(record.NewDate(1500, 1, 1), 1234, "USD", "XXX")
+		if assert.ErrorIs(t, err, ErrRatesRecordNotFound) {
+			assert.Zero(t, result)
+		}
+	})
+}
+
+func TestUnorderedRecords_ConvertMinorsApproximate(t *testing.T) {
+	t.Run("rangeLim covering both earlier and later records", func(t *testing.T) {
+		const (
+			amount   = 1599 // 15.99 USD
+			rangeLim = 100
+		)
+
+		var (
+			rec1 = record.Record{"USD": 0.1, "RUB": 0.5}
+			rec2 = record.Record{"USD": 1.0, "RUB": 0.1}
+		)
+		records := UnorderedRecords{
+			record.NewDate(2000, 1, 1):  rec1,
+			record.NewDate(2000, 1, 30): rec2,
+		}
+
+		result, err := records.ConvertMinorsApproximate(record.NewDate(2000, 1, 16), amount, "USD", "RUB", rangeLim)
+		if assert.NoError(t, err) {
+			var (
+				usdRate = (rec1["USD"] + rec2["USD"]) / 2
+				rubRate = (rec1["RUB"] + rec2["RUB"]) / 2
+			)
+			expectedResult := int(math.Round(amount * float64(usdRate/rubRate)))
+			assert.Equal(t, expectedResult, result)
+		}
+	})
+
+	t.Run("rangeLim covering both earlier and later records, missing TO rate in the earlier record", func(t *testing.T) {
+		const (
+			amount   = 1299 // 12.99 USD
+			rangeLim = 100
+		)
+
+		var (
+			rec1 = record.Record{"USD": 0.1}
+			rec2 = record.Record{"USD": 1.0, "RUB": 0.22}
+		)
+
+		records := UnorderedRecords{
+			record.NewDate(2000, 1, 1):  rec1,
+			record.NewDate(2000, 1, 30): rec2,
+		}
+
+		result, err := records.ConvertMinorsApproximate(record.NewDate(2000, 1, 16), amount, "USD", "RUB", rangeLim)
+		if assert.NoError(t, err) {
+			var (
+				usdRate = (rec1["USD"] + rec2["USD"]) / 2
+				rubRate = rec2["RUB"]
+			)
+			expectedResult := int(math.Round(amount * float64(usdRate/rubRate)))
+			assert.Equal(t, expectedResult, result)
+		}
+	})
+
+	t.Run("rangeLim covering both earlier and later records, missing TO rate in the later record", func(t *testing.T) {
+		const (
+			amount   = 1199 // 11.99 USD
+			rangeLim = 100
+		)
+
+		var (
+			rec1 = record.Record{"USD": 0.1, "RUB": 0.22}
+			rec2 = record.Record{"USD": 1.0}
+		)
+
+		records := UnorderedRecords{
+			record.NewDate(2000, 1, 1):  rec1,
+			record.NewDate(2000, 1, 30): rec2,
+		}
+
+		result, err := records.ConvertMinorsApproximate(record.NewDate(2000, 1, 16), amount, "USD", "RUB", rangeLim)
+		if assert.NoError(t, err) {
+			var (
+				usdRate = (rec1["USD"] + rec2["USD"]) / 2
+				rubRate = rec1["RUB"]
+			)
+			expectedResult := int(math.Round(amount * float64(usdRate/rubRate)))
+			assert.Equal(t, expectedResult, result)
+		}
+	})
+
+	t.Run("rangeLim covering both earlier and later records, missing TO rate in the both records", func(t *testing.T) {
+		const (
+			amount   = 9999
+			rangeLim = 100
+		)
+
+		var (
+			record1 = record.Record{"USD": 0.1, "RUB": 0.22}
+			record2 = record.Record{"USD": 1.0, "RUB": 0.123}
+		)
+		records := UnorderedRecords{
+			record.NewDate(2000, 1, 1):  record1,
+			record.NewDate(2000, 1, 30): record2,
+		}
+
+		result, err := records.ConvertMinorsApproximate(record.NewDate(2000, 1, 16), amount, "USD", "XXX", rangeLim)
+		if assert.Error(t, err) {
+			assert.Zero(t, result)
+		}
+	})
+
+	t.Run("rangeLim covering only earlier record", func(t *testing.T) {
+		const (
+			amount   = 235 // 2.35
+			rangeLim = 1
+		)
+
+		var (
+			rec1 = record.Record{"USD": 0.1, "RUB": 0.5}
+			rec2 = record.Record{"USD": 1.0, "RUB": 0.1}
+		)
+		records := UnorderedRecords{
+			record.NewDate(2000, 1, 1):  rec1,
+			record.NewDate(2000, 1, 30): rec2,
+		}
+
+		result, err := records.ConvertMinorsApproximate(record.NewDate(2000, 1, 2), amount, "USD", "RUB", rangeLim)
+		if assert.NoError(t, err) {
+			var (
+				usdRate = rec1["USD"]
+				rubRate = rec1["RUB"]
+			)
+			expectedResult := int(math.Round(amount * float64(usdRate/rubRate)))
+			assert.Equal(t, expectedResult, result)
+		}
+	})
+
+	t.Run("rangeLim covering only later record", func(t *testing.T) {
+		const (
+			amount   = 123 // 1.23
+			rangeLim = 1
+		)
+
+		var (
+			rec1 = record.Record{"USD": 0.1, "RUB": 0.5}
+			rec2 = record.Record{"USD": 1.0, "RUB": 0.1}
+		)
+		records := UnorderedRecords{
+			record.NewDate(2000, 1, 1):  rec1,
+			record.NewDate(2000, 1, 30): rec2,
+		}
+
+		result, err := records.ConvertMinorsApproximate(record.NewDate(2000, 1, 29), amount, "USD", "RUB", rangeLim)
+		if assert.NoError(t, err) {
+			var (
+				usdRate = rec2["USD"]
+				rubRate = rec2["RUB"]
+			)
+			expectedResult := int(math.Round(amount * float64(usdRate/rubRate)))
+			assert.Equal(t, expectedResult, result)
+		}
+	})
+
+	t.Run("rangeLim covering neither earlier nor later record", func(t *testing.T) {
+		const (
+			amount   = 123123
+			rangeLim = 5
+		)
+
+		var (
+			record1 = record.Record{"USD": 0.1, "RUB": 0.5}
+			record2 = record.Record{"USD": 1.0, "RUB": 0.1}
+		)
+		records := UnorderedRecords{
+			record.NewDate(2000, 1, 1):  record1,
+			record.NewDate(2000, 1, 30): record2,
+		}
+
+		result, err := records.ConvertMinorsApproximate(record.NewDate(2000, 1, 15), amount, "USD", "RUB", rangeLim)
 		if assert.ErrorIs(t, err, ErrRateApproximationFailed) {
 			assert.Zero(t, result)
 		}

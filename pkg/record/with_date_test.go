@@ -16,7 +16,10 @@ func TestNewWithDate(t *testing.T) {
 }
 
 func TestNewWithDateFromXMLData(t *testing.T) {
-	const USDRate float32 = 123.1
+	const (
+		USDRate float32 = 123.1
+		EURRate float32 = 1
+	)
 
 	t.Run("valid XML data", func(t *testing.T) {
 		xmlData := &xml.Data{
@@ -30,7 +33,7 @@ func TestNewWithDateFromXMLData(t *testing.T) {
 		recWithDate, err := NewWithDateFromXMLData(xmlData)
 		if assert.NoError(t, err) {
 			assert.Equal(t, NewDate(2024, 12, 1), recWithDate.Date)
-			assert.Equal(t, Record(map[string]float32{"USD": USDRate}), recWithDate.Record)
+			assert.Equal(t, Record(map[string]float32{"EUR": EURRate, "USD": USDRate}), recWithDate.Record)
 		}
 	})
 

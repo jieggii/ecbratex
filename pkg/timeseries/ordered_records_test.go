@@ -4,6 +4,7 @@ import (
 	"github.com/jieggii/ecbratex/pkg/record"
 	"github.com/jieggii/ecbratex/pkg/xml"
 	"github.com/stretchr/testify/assert"
+	"math"
 	"testing"
 )
 
@@ -350,7 +351,6 @@ func TestOrderedRecords_ApproximateRate(t *testing.T) {
 		}
 	})
 
-	// todo
 	t.Run("rangeLim covering both earlier and later records, missing rate in the later record", func(t *testing.T) {
 		const rangeLim = 100
 
@@ -699,6 +699,229 @@ func TestOrderedRecords_ConvertApproximate(t *testing.T) {
 		)
 
 		result, err := records.ConvertApproximate(record.NewDate(2000, 1, 15), amount, "USD", "RUB", rangeLim)
+		if assert.ErrorIs(t, err, ErrRateApproximationFailed) {
+			assert.Zero(t, result)
+		}
+	})
+}
+
+func TestOrderedRecords_ConvertMinors(t *testing.T) {
+
+	const (
+		USDRate float32 = 0.9
+		RUBRate float32 = 0.01
+	)
+
+	var (
+		date = record.NewDate(2020, 1, 1)
+		rec  = record.Record{"USD": USDRate, "RUB": RUBRate}
+	)
+	records := OrderedRecords{
+		record.NewWithDate(rec, date),
+	}
+
+	t.Run("existing date, existing from and existing to", func(t *testing.T) {
+		const amount = 1234 // 12.34 USD
+
+		result, err := records.ConvertMinors(date, amount, "USD", "RUB")
+		if assert.NoError(t, err) {
+			expectedResult := int(math.Round(amount * float64(USDRate/RUBRate)))
+			assert.Equal(t, expectedResult, result)
+		}
+	})
+
+	t.Run("existing date, non-existing from and existing to", func(t *testing.T) {
+		result, err := records.ConvertMinors(date, 1234, "XXX", "RUB")
+		if assert.ErrorIs(t, err, record.ErrRateNotFound) {
+			assert.Zero(t, result)
+		}
+	})
+
+	t.Run("existing date, existing from and non-existing to", func(t *testing.T) {
+		result, err := records.ConvertMinors(date, 1234, "USD", "XXX")
+		if assert.ErrorIs(t, err, record.ErrRateNotFound) {
+			assert.Zero(t, result)
+		}
+	})
+
+	t.Run("non-existing date", func(t *testing.T) {
+		result, err := records.ConvertMinors(record.NewDate(1500, 1, 1), 1234, "USD", "XXX")
+		if assert.ErrorIs(t, err, ErrRatesRecordNotFound) {
+			assert.Zero(t, result)
+		}
+	})
+}
+
+func TestOrderedRecords_ConvertMinorsApproximate(t *testing.T) {
+	t.Run("rangeLim covering both earlier and later records", func(t *testing.T) {
+		const (
+			amount   = 1599 // 15.99 USD
+			rangeLim = 100
+		)
+
+		var (
+			rec1 = record.Record{"USD": 0.1, "RUB": 0.5}
+			rec2 = record.Record{"USD": 1.0, "RUB": 0.1}
+		)
+		records := OrderedRecords{
+			record.NewWithDate(rec2, record.NewDate(2000, 1, 30)),
+			record.NewWithDate(rec1, record.NewDate(2000, 1, 1)),
+		}
+
+		result, err := records.ConvertMinorsApproximate(record.NewDate(2000, 1, 16), amount, "USD", "RUB", rangeLim)
+		if assert.NoError(t, err) {
+			var (
+				usdRate = (rec1["USD"] + rec2["USD"]) / 2
+				rubRate = (rec1["RUB"] + rec2["RUB"]) / 2
+			)
+			expectedResult := int(math.Round(amount * float64(usdRate/rubRate)))
+			assert.Equal(t, expectedResult, result)
+		}
+	})
+
+	t.Run("rangeLim covering both earlier and later records, missing TO rate in the earlier record", func(t *testing.T) {
+		const (
+			amount   = 1299 // 12.99 USD
+			rangeLim = 100
+		)
+
+		var (
+			rec1 = record.Record{"USD": 0.1}
+			rec2 = record.Record{"USD": 1.0, "RUB": 0.22}
+		)
+
+		records := OrderedRecords{
+			record.NewWithDate(rec2, record.NewDate(2000, 1, 30)),
+			record.NewWithDate(rec1, record.NewDate(2000, 1, 1)),
+		}
+
+		result, err := records.ConvertMinorsApproximate(record.NewDate(2000, 1, 16), amount, "USD", "RUB", rangeLim)
+		if assert.NoError(t, err) {
+			var (
+				usdRate = (rec1["USD"] + rec2["USD"]) / 2
+				rubRate = rec2["RUB"]
+			)
+			expectedResult := int(math.Round(amount * float64(usdRate/rubRate)))
+			assert.Equal(t, expectedResult, result)
+		}
+	})
+
+	t.Run("rangeLim covering both earlier and later records, missing TO rate in the later record", func(t *testing.T) {
+		const (
+			amount   = 1199 // 11.99 USD
+			rangeLim = 100
+		)
+
+		var (
+			rec1 = record.Record{"USD": 0.1, "RUB": 0.22}
+			rec2 = record.Record{"USD": 1.0}
+		)
+
+		records := OrderedRecords{
+			record.NewWithDate(rec2, record.NewDate(2000, 1, 30)),
+			record.NewWithDate(rec1, record.NewDate(2000, 1, 1)),
+		}
+
+		result, err := records.ConvertMinorsApproximate(record.NewDate(2000, 1, 16), amount, "USD", "RUB", rangeLim)
+		if assert.NoError(t, err) {
+			var (
+				usdRate = (rec1["USD"] + rec2["USD"]) / 2
+				rubRate = rec1["RUB"]
+			)
+			expectedResult := int(math.Round(amount * float64(usdRate/rubRate)))
+			assert.Equal(t, expectedResult, result)
+		}
+	})
+
+	t.Run("rangeLim covering both earlier and later records, missing TO rate in the both records", func(t *testing.T) {
+		const (
+			amount   = 9999
+			rangeLim = 100
+		)
+
+		var (
+			rec1 = record.Record{"USD": 1.0, "RUB": 0.123}
+			rec2 = record.Record{"USD": 0.1, "RUB": 0.22}
+		)
+		records := OrderedRecords{
+			record.NewWithDate(rec1, record.NewDate(2000, 1, 30)),
+			record.NewWithDate(rec2, record.NewDate(2000, 1, 1)),
+		}
+
+		result, err := records.ConvertMinorsApproximate(record.NewDate(2000, 1, 16), amount, "USD", "XXX", rangeLim)
+		if assert.Error(t, err) {
+			assert.Zero(t, result)
+		}
+	})
+
+	t.Run("rangeLim covering only earlier record", func(t *testing.T) {
+		const (
+			amount   = 235 // 2.35
+			rangeLim = 1
+		)
+
+		var (
+			rec1 = record.Record{"USD": 1.0, "RUB": 0.1}
+			rec2 = record.Record{"USD": 0.1, "RUB": 0.5}
+		)
+		records := OrderedRecords{
+			record.NewWithDate(rec1, record.NewDate(2000, 1, 30)),
+			record.NewWithDate(rec2, record.NewDate(2000, 1, 1)),
+		}
+
+		result, err := records.ConvertMinorsApproximate(record.NewDate(2000, 1, 2), amount, "USD", "RUB", rangeLim)
+		if assert.NoError(t, err) {
+			var (
+				usdRate = rec2["USD"]
+				rubRate = rec2["RUB"]
+			)
+			expectedResult := int(math.Round(amount * float64(usdRate/rubRate)))
+			assert.Equal(t, expectedResult, result)
+		}
+	})
+
+	t.Run("rangeLim covering only later record", func(t *testing.T) {
+		const (
+			amount   = 123 // 1.23
+			rangeLim = 1
+		)
+
+		var (
+			rec2 = record.Record{"USD": 0.1, "RUB": 0.5}
+			rec1 = record.Record{"USD": 1.0, "RUB": 0.1}
+		)
+		records := OrderedRecords{
+			record.NewWithDate(rec1, record.NewDate(2000, 1, 30)),
+			record.NewWithDate(rec2, record.NewDate(2000, 1, 1)),
+		}
+
+		result, err := records.ConvertMinorsApproximate(record.NewDate(2000, 1, 29), amount, "USD", "RUB", rangeLim)
+		if assert.NoError(t, err) {
+			var (
+				usdRate = rec1["USD"]
+				rubRate = rec1["RUB"]
+			)
+			expectedResult := int(math.Round(amount * float64(usdRate/rubRate)))
+			assert.Equal(t, expectedResult, result)
+		}
+	})
+
+	t.Run("rangeLim covering neither earlier nor later record", func(t *testing.T) {
+		const (
+			amount   = 123123
+			rangeLim = 5
+		)
+
+		var (
+			rec2 = record.Record{"USD": 0.1, "RUB": 0.5}
+			rec1 = record.Record{"USD": 1.0, "RUB": 0.1}
+		)
+		records := OrderedRecords{
+			record.NewWithDate(rec1, record.NewDate(2000, 1, 30)),
+			record.NewWithDate(rec2, record.NewDate(2000, 1, 1)),
+		}
+
+		result, err := records.ConvertMinorsApproximate(record.NewDate(2000, 1, 15), amount, "USD", "RUB", rangeLim)
 		if assert.ErrorIs(t, err, ErrRateApproximationFailed) {
 			assert.Zero(t, result)
 		}

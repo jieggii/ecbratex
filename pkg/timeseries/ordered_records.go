@@ -1,7 +1,6 @@
 package timeseries
 
 import (
-	"fmt"
 	"github.com/jieggii/ecbratex/pkg/date"
 	"github.com/jieggii/ecbratex/pkg/record"
 	"github.com/jieggii/ecbratex/pkg/xml"
@@ -81,7 +80,7 @@ func (r OrderedRecords) Rate(date date.Date, string string) (float32, bool) {
 }
 
 // ApproximateRates approximates and returns approximated rates on the given date.
-// Operates on O(rangeLim) time complexity.
+// Operates on O(n) time complexity.
 func (r OrderedRecords) ApproximateRates(date date.Date, rangeLim int) (record.Record, bool) {
 	recDate := record.DateFromDate(date)
 
@@ -128,7 +127,7 @@ func (r OrderedRecords) ApproximateRates(date date.Date, rangeLim int) (record.R
 }
 
 // ApproximateRate approximates and returns approximated rate of the given currency on the given date.
-// Operates on O(rangeLim) time complexity.
+// Operates on O(n) time complexity.
 func (r OrderedRecords) ApproximateRate(date date.Date, string string, rangeLim int) (float32, bool) {
 	recDate := record.DateFromDate(date)
 
@@ -171,23 +170,23 @@ func (r OrderedRecords) ApproximateRate(date date.Date, string string, rangeLim 
 func (r OrderedRecords) Convert(date date.Date, amount float32, from string, to string) (float32, error) {
 	rec, found := r.Rates(date)
 	if !found {
-		return 0, fmt.Errorf("get rates record on %s: %w", date.String(), ErrRatesRecordNotFound)
+		return 0, ErrRatesRecordNotFound
 	}
 
 	result, err := rec.Convert(amount, from, to)
 	if err != nil {
-		return 0, fmt.Errorf("convert %s to %s: %w", from, to, err)
+		return 0, err
 	}
 	return result, nil
 }
 
-// ConvertApproximate approximates rates on the given date
-// and uses them to convert amount from one currency to another on the given date.
+// ConvertApproximate converts amount from one currency to another on the given date,
+// using approximated rates within rangeLim days.
 // Operates on O(n) time complexity.
 func (r OrderedRecords) ConvertApproximate(date date.Date, amount float32, from string, to string, rangeLim int) (float32, error) {
 	rates, found := r.ApproximateRates(date, rangeLim)
 	if !found {
-		return 0, fmt.Errorf("approximate rates on %s within range of %d days: %w", date.String(), rangeLim, ErrRateApproximationFailed)
+		return 0, ErrRateApproximationFailed
 	}
 
 	result, err := rates.Convert(amount, from, to)
@@ -197,8 +196,41 @@ func (r OrderedRecords) ConvertApproximate(date date.Date, amount float32, from 
 	return result, nil
 }
 
+// ConvertMinors converts amount in minor units from one currency to another on the given date.
+// Operates on O(n) time complexity.
+func (r OrderedRecords) ConvertMinors(date date.Date, amount int, from string, to string) (int, error) {
+	rec, found := r.Rates(date)
+	if !found {
+		return 0, ErrRatesRecordNotFound
+	}
+
+	result, err := rec.ConvertMinors(amount, from, to)
+	if err != nil {
+		return 0, err
+	}
+	return result, nil
+
+}
+
+// ConvertMinorsApproximate converts amount in minor units from one currency to another on the given date,
+// using approximated rates within rangeLim days.
+// Operates on O(n) time complexity.
+func (r OrderedRecords) ConvertMinorsApproximate(date date.Date, amount int, from string, to string, rangeLim int) (int, error) {
+	rates, found := r.ApproximateRates(date, rangeLim)
+	if !found {
+		return 0, ErrRateApproximationFailed
+
+	}
+
+	result, err := rates.ConvertMinors(amount, from, to)
+	if err != nil {
+		return 0, err
+	}
+	return result, nil
+}
+
 // nearestEarlierRecord finds the closest earlier rate record to the given date within the specified range.
-// Operates on O(rangeLim) time complexity.
+// Operates on O(n) time complexity.
 func (r OrderedRecords) nearestEarlierRecord(recDate record.Date, rangeLim int) (record.Record, bool) {
 	earlierRecIndex := -1
 	for i, rec := range r {
@@ -219,7 +251,7 @@ func (r OrderedRecords) nearestEarlierRecord(recDate record.Date, rangeLim int) 
 }
 
 // nearestLaterRecord finds the closest later rate record to the given date within the specified range.
-// Operates on O(rangeLim) time complexity.
+// Operates on O(n) time complexity.
 func (r OrderedRecords) nearestLaterRecord(recDate record.Date, rangeLim int) (record.Record, bool) {
 	laterRecIndex := -1
 	for i, rec := range r {

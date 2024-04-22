@@ -21,6 +21,12 @@ const DefaultRangeLim = 100
 // It provides useful functions for retrieving or approximating rates and
 // functions for converting amounts from one currency to another.
 type Records interface {
+	// Slice returns slice of all exchange rates records in the anti-chronological order.
+	Slice() []record.WithDate
+
+	// Map returns map containing all exchange rates records indexed by their date.
+	Map() map[record.Date]record.Record
+
 	// Rates retrieves currency rates for the given date.
 	// It returns the rates record for the specified date and a boolean indicating whether the record was found.
 	Rates(date date.Date) (record.Record, bool)
@@ -47,7 +53,7 @@ type Records interface {
 	// Is useful when there is no rates record on the desired date.
 	ApproximateRate(date date.Date, currency string, rangeLim int) (float32, bool)
 
-	// Convert converts the specified amount of currency from one currency to another on the given date.
+	// Convert converts the specified amount from one currency to another on the given date.
 	// It returns the converted amount as a float32 or an error if conversion fails.
 	Convert(date date.Date, amount float32, from string, to string) (float32, error)
 
@@ -56,15 +62,12 @@ type Records interface {
 	// It returns the converted amount as a float32 or an error if conversion fails.
 	ConvertApproximate(date date.Date, amount float32, from string, to string, rangeLim int) (float32, error)
 
-	// ConvertMinors TODO
-	//ConvertMinors(date date.Date, amount int, from string, to string) (int, error)
+	// ConvertMinors converts the specified amount of currency in minor units from one currency to another on the given date.
+	// It returns the converted amount as an int or an error if conversion fails.
+	ConvertMinors(date date.Date, amount int, from string, to string) (int, error)
 
-	// ConvertMinorsApproximate TODO
-	//ConvertMinorsApproximate(date date.Date, amount int, from string, to string, rangeLim int) (int, error)
-
-	// Slice returns slice of all exchange rates records in the anti-chronological order.
-	Slice() []record.WithDate
-
-	// Map returns map containing all exchange rates records indexed by their date.
-	Map() map[record.Date]record.Record
+	// ConvertMinorsApproximate converts the specified amount of currency in minor units from one currency to another on the given date
+	// using approximate rates within a specified days determined by rangeLim.
+	// It returns the converted amount as an int or an error if conversion fails.
+	ConvertMinorsApproximate(date date.Date, amount int, from string, to string, rangeLim int) (int, error)
 }
