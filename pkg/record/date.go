@@ -20,7 +20,8 @@ type (
 	Day   uint8
 )
 
-// Date is an implementation of [timeseries.Date] containing useful methods for manipulating record dates.
+// Date is an implementation of the [date.Date] interface containing useful
+// methods for manipulating record dates.
 // Stores year, month and day in minimalistic data types to save memory.
 type Date struct {
 	year  Year

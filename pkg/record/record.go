@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	// ErrRateNotFound error indicates that rate of the given currency is not present
-	// in a particular record.
+	// ErrRateNotFound error indicates that rate of
+	// the given currency is not present in a particular record.
 	ErrRateNotFound = errors.New("exchange rate was not found")
 )
 

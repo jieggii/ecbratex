@@ -15,10 +15,12 @@ type WithDate struct {
 	Date Date
 }
 
-func NewWithDate(rec Record, date Date) WithDate {
-	return WithDate{Record: rec, Date: date}
+// NewWithDate creates a new WithDate and returns it.
+func NewWithDate(record Record, date Date) WithDate {
+	return WithDate{Record: record, Date: date}
 }
 
+// NewWithDateFromXMLData creates a new WithDate from xml.Data.
 func NewWithDateFromXMLData(xmlData *xml.Data) (*WithDate, error) {
 	if len(xmlData.Cubes) == 0 {
 		return nil, errors.New("document does not contain any rate records")

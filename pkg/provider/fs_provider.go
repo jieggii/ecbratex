@@ -4,7 +4,8 @@ import (
 	"os"
 )
 
-// FSProvider is a Provider which reads currency exchange rate records from files.
+// FSProvider is the Provider interface implementation which reads
+// currency exchange rate records from files stored in the file system.
 type FSProvider struct {
 	pathLatest               string
 	pathTimeSeries           string

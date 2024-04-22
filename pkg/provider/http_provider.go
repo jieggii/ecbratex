@@ -6,7 +6,8 @@ import (
 	"net/http"
 )
 
-// HTTPProvider is a Provider which uses HTTP GET request to read currency exchange rate records.
+// HTTPProvider is the Provider interface implementation which uses
+// HTTP GET request to retrieve currency exchange rate records.
 type HTTPProvider struct {
 	urlLatest               string
 	urlTimeSeries           string
@@ -22,7 +23,7 @@ func NewHTTPProvider(urlLatest string, urlTimeSeries string, urlTimeSeriesLast90
 	}
 }
 
-// GetRatesData file corresponding to the given data kind by its URL.
+// GetRatesData fetches exchange rates records file by its URL corresponding to the given data kind.
 func (f *HTTPProvider) GetRatesData(kind DataKind) ([]byte, error) {
 	// choose URL:
 	var url string
