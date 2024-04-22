@@ -3,6 +3,9 @@ Go package for fetching and manipulating exchange rates from the [European Centr
 
 **ecbratex** is inspired by [openprovider/ecbrates](https://github.com/openprovider/ecbrates), but has some additional features.
 
+## Project status
+Work in progress, the module is almost done! No API changes are not expected.
+
 ## Simple examples
 ### Fetch latest rates
 
