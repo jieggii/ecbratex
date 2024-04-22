@@ -1,5 +1,5 @@
-// Package ecbratex provides a convenient interface and a set of data structures for
-// fetching and manipulating currency exchange rate records from the European Central Bank (https://ecb.europa.eu).
+// Package ecbratex provides a convenient interface and useful data structures for fetching
+// and manipulating currency exchange rate records from the European Central Bank (https://ecb.europa.eu).
 package ecbratex
 
 import (
