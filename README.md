@@ -11,7 +11,7 @@ Work in progress, the module is almost done! No API changes expected.
 * Rates approximation if there is no rates records for the desired date. [(see example)](/examples/time-series-rates/approximate/main.go)
 * Simple interface to convert amounts from one currency to another in both minor and major units! [(see example)](/examples/latest-rates/convert-minors/main.go)
 
-## Simple examples
+## Usage examples
 > More examples can be found [here](/examples).
 
 ### Fetch latest rates
