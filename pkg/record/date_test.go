@@ -130,9 +130,9 @@ func TestDate_SubDays(t *testing.T) {
 		other Date
 	}
 	cases := map[input]int{
-		input{NewDate(2000, 1, 2), NewDate(2000, 1, 2)}:  0,
-		input{NewDate(2000, 1, 1), NewDate(2000, 1, 10)}: -9,
-		input{NewDate(2000, 1, 10), NewDate(2000, 1, 1)}: 9,
+		{NewDate(2000, 1, 2), NewDate(2000, 1, 2)}:  0,
+		{NewDate(2000, 1, 1), NewDate(2000, 1, 10)}: -9,
+		{NewDate(2000, 1, 10), NewDate(2000, 1, 1)}: 9,
 	}
 
 	for in, out := range cases {
