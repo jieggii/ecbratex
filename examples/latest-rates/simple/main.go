@@ -1,3 +1,7 @@
+/*
+	This simple example teaches you to fetch latest rates and perform basic operations with them.
+*/
+
 package main
 
 import (
