@@ -6,7 +6,14 @@ Go package for fetching and manipulating exchange rates from the [European Centr
 ## Project status
 Work in progress, the module is almost done! No API changes expected.
 
+## Features:
+* Different data structures for storing time series rate records: choose the most suitable for your purpose or use a sane default!
+* Rates approximation if there is no rates records for the desired date. [(see example)](/examples/time-series-rates/approximate/main.go)
+* Simple interface to convert amounts from one currency to another in both minor and major units! [(see example)](/examples/latest-rates/simple/main.go)
+
 ## Simple examples
+> More examples can be found [here](/examples).
+
 ### Fetch latest rates
 
 ```go
