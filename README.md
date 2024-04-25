@@ -62,5 +62,49 @@ func main() {
     result, _ := records.Convert(date, 999, "USD", "EUR")
     fmt.Printf("999 USD = %f EUR on %s\n", result, date.String())
 }
-
 ```
+
+## Available currencies
+> Note: rates of some of these currencies are only present in historical data and not present in the _latest_ rates.
+* AUD
+* BGN
+* BRL
+* CAD
+* CHF
+* CNY
+* CYP
+* CZK
+* DKK
+* EEK
+* EUR
+* GBP
+* HKD
+* HRK
+* HUF
+* IDR
+* ILS
+* INR
+* ISK
+* JPY
+* KRW
+* LTL
+* LVL
+* MTL
+* MXN
+* MYR
+* NOK
+* NZD
+* PHP
+* PLN
+* ROL
+* RON
+* RUB
+* SEK
+* SGD
+* SIT
+* SKK
+* THB
+* TRL
+* TRY
+* USD
+* ZAR
