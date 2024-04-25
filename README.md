@@ -1,4 +1,5 @@
-# ecbratex
+# ecbratex ![Go Report Card](https://goreportcard.com/badge/github.com/jieggii/ecbratex)
+
 Go package for fetching and manipulating exchange rates from the [European Central Bank](https://www.ecb.europa.eu/).
 
 **ecbratex** is inspired by [openprovider/ecbrates](https://github.com/openprovider/ecbrates), but has some additional features.
