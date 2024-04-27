@@ -32,7 +32,7 @@ const (
 	PeriodLast90Days
 )
 
-// DataKind converts the period to provider.DataKind.
+// DataKind returns matching [provider.DataKind] for this period.
 func (p Period) DataKind() (provider.DataKind, error) {
 	switch p {
 	case PeriodWhole:
