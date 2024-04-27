@@ -64,10 +64,10 @@ type Records interface {
 
 	// ConvertMinors converts the specified amount of currency in minor units from one currency to another on the given date.
 	// It returns the converted amount as an int or an error if conversion fails.
-	ConvertMinors(date date.Date, amount int, from string, to string) (int, error)
+	ConvertMinors(date date.Date, amount int64, from string, to string) (int64, error)
 
 	// ConvertMinorsApproximate converts the specified amount of currency in minor units from one currency to another on the given date
 	// using approximate rates within a specified days determined by rangeLim.
 	// It returns the converted amount as an int or an error if conversion fails.
-	ConvertMinorsApproximate(date date.Date, amount int, from string, to string, rangeLim int) (int, error)
+	ConvertMinorsApproximate(date date.Date, amount int64, from string, to string, rangeLim int) (int64, error)
 }

@@ -14,7 +14,7 @@ func main() {
 	// fetch latest rates record:
 	record, _ := ecbratex.FetchLatest()
 
-	eurMinors := 1625 // 16.25 EUR
+	var eurMinors int64 = 1625 // 16.25 EUR
 	usdMinors, _ := record.ConvertMinors(eurMinors, "EUR", "USD")
 	fmt.Printf("%f EUR = %f USD\n", float32(eurMinors)/100, float32(usdMinors)/100)
 }

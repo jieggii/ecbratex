@@ -46,7 +46,7 @@ func (r Record) Convert(amount float32, from string, to string) (float32, error)
 }
 
 // ConvertMinors converts amount in minor units from one to another.
-func (r Record) ConvertMinors(amount int, from string, to string) (int, error) {
+func (r Record) ConvertMinors(amount int64, from string, to string) (int64, error) {
 	fromRate, found := r.Rate(from)
 	if !found {
 		return 0, fmt.Errorf("get %s rate: %w", from, ErrRateNotFound)
@@ -58,5 +58,5 @@ func (r Record) ConvertMinors(amount int, from string, to string) (int, error) {
 	}
 
 	result := float32(amount) * (fromRate / toRate)
-	return int(math.Round(float64(result))), nil
+	return int64(math.Round(float64(result))), nil
 }

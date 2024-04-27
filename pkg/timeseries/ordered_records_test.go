@@ -725,7 +725,7 @@ func TestOrderedRecords_ConvertMinors(t *testing.T) {
 
 		result, err := records.ConvertMinors(date, amount, "USD", "RUB")
 		if assert.NoError(t, err) {
-			expectedResult := int(math.Round(amount * float64(USDRate/RUBRate)))
+			expectedResult := int64(math.Round(amount * float64(USDRate/RUBRate)))
 			assert.Equal(t, expectedResult, result)
 		}
 	})
@@ -774,7 +774,7 @@ func TestOrderedRecords_ConvertMinorsApproximate(t *testing.T) {
 				usdRate = (rec1["USD"] + rec2["USD"]) / 2
 				rubRate = (rec1["RUB"] + rec2["RUB"]) / 2
 			)
-			expectedResult := int(math.Round(amount * float64(usdRate/rubRate)))
+			expectedResult := int64(math.Round(amount * float64(usdRate/rubRate)))
 			assert.Equal(t, expectedResult, result)
 		}
 	})
@@ -801,7 +801,7 @@ func TestOrderedRecords_ConvertMinorsApproximate(t *testing.T) {
 				usdRate = (rec1["USD"] + rec2["USD"]) / 2
 				rubRate = rec2["RUB"]
 			)
-			expectedResult := int(math.Round(amount * float64(usdRate/rubRate)))
+			expectedResult := int64(math.Round(amount * float64(usdRate/rubRate)))
 			assert.Equal(t, expectedResult, result)
 		}
 	})
@@ -828,7 +828,7 @@ func TestOrderedRecords_ConvertMinorsApproximate(t *testing.T) {
 				usdRate = (rec1["USD"] + rec2["USD"]) / 2
 				rubRate = rec1["RUB"]
 			)
-			expectedResult := int(math.Round(amount * float64(usdRate/rubRate)))
+			expectedResult := int64(math.Round(amount * float64(usdRate/rubRate)))
 			assert.Equal(t, expectedResult, result)
 		}
 	})
@@ -875,7 +875,7 @@ func TestOrderedRecords_ConvertMinorsApproximate(t *testing.T) {
 				usdRate = rec2["USD"]
 				rubRate = rec2["RUB"]
 			)
-			expectedResult := int(math.Round(amount * float64(usdRate/rubRate)))
+			expectedResult := int64(math.Round(amount * float64(usdRate/rubRate)))
 			assert.Equal(t, expectedResult, result)
 		}
 	})
@@ -901,7 +901,7 @@ func TestOrderedRecords_ConvertMinorsApproximate(t *testing.T) {
 				usdRate = rec1["USD"]
 				rubRate = rec1["RUB"]
 			)
-			expectedResult := int(math.Round(amount * float64(usdRate/rubRate)))
+			expectedResult := int64(math.Round(amount * float64(usdRate/rubRate)))
 			assert.Equal(t, expectedResult, result)
 		}
 	})

@@ -198,7 +198,7 @@ func (r OrderedRecords) ConvertApproximate(date date.Date, amount float32, from 
 
 // ConvertMinors converts amount in minor units from one currency to another on the given date.
 // Operates on O(n) time complexity.
-func (r OrderedRecords) ConvertMinors(date date.Date, amount int, from string, to string) (int, error) {
+func (r OrderedRecords) ConvertMinors(date date.Date, amount int64, from string, to string) (int64, error) {
 	rec, found := r.Rates(date)
 	if !found {
 		return 0, ErrRatesRecordNotFound
@@ -215,7 +215,7 @@ func (r OrderedRecords) ConvertMinors(date date.Date, amount int, from string, t
 // ConvertMinorsApproximate converts amount in minor units from one currency to another on the given date,
 // using approximated rates within rangeLim days.
 // Operates on O(n) time complexity.
-func (r OrderedRecords) ConvertMinorsApproximate(date date.Date, amount int, from string, to string, rangeLim int) (int, error) {
+func (r OrderedRecords) ConvertMinorsApproximate(date date.Date, amount int64, from string, to string, rangeLim int) (int64, error) {
 	rates, found := r.ApproximateRates(date, rangeLim)
 	if !found {
 		return 0, ErrRateApproximationFailed

@@ -100,13 +100,13 @@ func TestRecord_ConvertMinors(t *testing.T) {
 		record["USD"] = USDRate
 		record["RUB"] = RUBRate
 
-		USDtoRUB := map[int]int{
+		USDtoRUB := map[int64]int64{
 			0:     0,
 			500:   45000,
 			-1000: -90000,
 			1:     90,
 		}
-		RUBtoUSD := map[int]int{
+		RUBtoUSD := map[int64]int64{
 			0:      0,
 			45000:  500,
 			-90000: -1000,
