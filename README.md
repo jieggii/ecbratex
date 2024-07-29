@@ -4,9 +4,6 @@ Go package for fetching and manipulating exchange rates from the [European Centr
 
 **ecbratex** is inspired by [openprovider/ecbrates](https://github.com/openprovider/ecbrates), but has some additional features.
 
-## Project status
-Work in progress, the module is almost done! No API changes expected.
-
 ## Features:
 * Different data structures for storing time series rate records: choose the most suitable for your purpose or use a sane default!
 * Rates approximation if there is no rates records for the desired date. [(see example)](/examples/time-series-rates/approximate/main.go)
@@ -65,47 +62,11 @@ func main() {
 }
 ```
 
-## Available currencies
+## Supported currencies
 > Note: rates of some of these currencies are only present in historical data and not present in the _latest_ rates.
-* AUD
-* BGN
-* BRL
-* CAD
-* CHF
-* CNY
-* CYP
-* CZK
-* DKK
-* EEK
-* EUR
-* GBP
-* HKD
-* HRK
-* HUF
-* IDR
-* ILS
-* INR
-* ISK
-* JPY
-* KRW
-* LTL
-* LVL
-* MTL
-* MXN
-* MYR
-* NOK
-* NZD
-* PHP
-* PLN
-* ROL
-* RON
-* RUB
-* SEK
-* SGD
-* SIT
-* SKK
-* THB
-* TRL
-* TRY
-* USD
-* ZAR
+
+<details>
+<br>
+<summary>List of supported currencies</summary>
+AUD, BGN, BRL, CAD, CHF, CNY, CYP, CZK, DKK, EEK, EUR, GBP, HKD, HRK, HUF, IDR, ILS, INR, ISK, JPY, KRW, LTL, LVL, MTL, MXN, MYR, NOK, NZD, PHP, PLN, ROL, RON, RUB, SEK, SGD, SIT, SKK, THB, TRL, TRY, USD, ZAR.
+</details>
